@@ -12,4 +12,6 @@ kubectl get svc
 **Error list:**
 - You must be logged in to the server (Unauthorized): you have to create the eks cluster with the same ID as used in AWS-CLI
 
-5. ADD other user to your created EKS: [AWS Documentation](https://docs.aws.amazon.com/eks/latest/userguide/add-user-role.html)
+5. Add other user to your created EKS: [AWS Documentation](https://docs.aws.amazon.com/eks/latest/userguide/add-user-role.html) 
+6. Install eksctl: [AWS Documentation](https://docs.aws.amazon.com/eks/latest/userguide/eksctl.html)  
+7. 
