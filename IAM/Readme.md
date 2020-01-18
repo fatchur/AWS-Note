@@ -16,3 +16,7 @@ Access key ID example: AKIAIOSFODNN7EXAMPLE
 Secret access key example: wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY
 ```
 - Click `Download Credentials`, and store the keys in a secure location.
+
+## Joining User to a Group
+- select `Groups`, choose group name
+- select `Users` in the groups console, then `Add user to group`
