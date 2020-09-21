@@ -1,16 +1,17 @@
 ## Note
-1. Install AWS CLI: [AWS Documentation](https://docs.aws.amazon.com/cli/latest/userguide/install-linux.html),
-Choose installation by Pip at bottom part.
+1. **Install AWS CLI:**
+[AWS Documentation](https://docs.aws.amazon.com/cli/latest/userguide/install-linux.html),
+Choose installation by python pip at the bottom part.
 
 ```Error Notes
-1. bash: aws: command not found 
+- bash: aws: command not found 
    --> sudo pip3 install awscli --force-reinstall --upgrade
 
-2. 
+-  
 ```
 
 
-2. Configure The AWS CLI:   
+2. **Configure The AWS CLI:**
 ```
 aws configure
 ```
