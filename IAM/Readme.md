@@ -20,3 +20,7 @@ Secret access key example: wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY
 ## Joining User to a Group
 - select `Groups`, choose group name
 - select `Users` in the groups console, then `Add user to group`
+
+
+## Configure AWS Profile
+- open 
