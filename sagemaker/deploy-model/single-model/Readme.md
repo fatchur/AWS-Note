@@ -15,6 +15,9 @@ pip3 install --upgrade sagemaker
 ### 1.1 Tensorflow
 * python code: 
     ```
+    ######################
+    #   Deployment code  #
+    ######################
     import sagemaker
     from sagemaker.tensorflow.model import TensorFlowModel
    
@@ -27,7 +30,20 @@ pip3 install --upgrade sagemaker
     predictor = model.deploy(initial_instance_count=1, 
                             instance_type='ml.c5.large', 
                             endpoint_name="endpooint-name")
+
+    
+    ######################
+    #  Model Test code   #
+    ######################
+    from sagemaker.tensorFlow.model import TensorFlowPredictor
+
+    input = {"instances": [{"input": {"b64": <img_b64>}}]}
+    endpoint = predictor.endpoint_name ## predictor --> from deployment
+    model_predictor = TensorFlowPredictor(endpoint)
+    result = model_predictor.predict(input)
     ```
+
+
 
 * note:
     ```
