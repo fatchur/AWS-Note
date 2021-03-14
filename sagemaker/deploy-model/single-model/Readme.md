@@ -37,8 +37,11 @@ pip3 install --upgrade sagemaker
     ```
 
 ### 1.2 XGboost
-### 1.3 sklean
+### 1.3 Sklean
 ### 1.4 Pytorch
+
+
+## 2. Lambda API Request Deployment
 
 
 ## References: 
