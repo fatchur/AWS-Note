@@ -143,3 +143,6 @@ serverless deploy
 ### using AWS profile
 serverless deploy --aws-profile <your-role-name>
 ```
+
+## References
+- [flask-python-rest-api-serverless-lambda-dynamodb](https://www.serverless.com/blog/flask-python-rest-api-serverless-lambda-dynamodb)
