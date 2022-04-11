@@ -1,0 +1,157 @@
+
+AWSTemplateFormatVersion: "2010-09-09"
+Description: Stack code for ECR
+
+Parameters:
+  EnvironmentName:
+      Description: An environment name that is prefixed to resource names
+      Type: String
+      Default: mlops-rec-ecr-prod
+
+  RepoPolicy:
+    Type: String
+    Default: '{"Statement":[ {"Sid" : "a", "Effect" : "Allow", "Principal" : "*", "Action" : "ecr:*" } ]}'
+
+
+Resources:
+  ecrApiBox:
+    Type: 'AWS::ECR::Repository'
+    Properties:
+      ImageScanningConfiguration:
+        ScanOnPush: True
+      ImageTagMutability: MUTABLE
+      RepositoryName: mlops-rec-api-box-images
+      RepositoryPolicyText: !Ref RepoPolicy
+      #LifecyclePolicyText: !Ref RepoLifecycle 
+
+  ecrG1Model:
+    Type: 'AWS::ECR::Repository'
+    Properties:
+      ImageScanningConfiguration:
+        ScanOnPush: True
+      ImageTagMutability: MUTABLE
+      RepositoryName: mlops-rec-g1-model-images
+      RepositoryPolicyText: !Ref RepoPolicy
+      #LifecyclePolicyText: !Ref RepoLifecycle
+
+  ecrNewsFeedJob:
+    Type: 'AWS::ECR::Repository'
+    Properties:
+      ImageScanningConfiguration:
+        ScanOnPush: True
+      ImageTagMutability: MUTABLE
+      RepositoryName: mlops-rec-news-feed-job-images
+      RepositoryPolicyText: !Ref RepoPolicy
+      #LifecyclePolicyText: !Ref RepoLifecycle
+
+  ecrNewsFeed:
+    Type: 'AWS::ECR::Repository'
+    Properties:
+      ImageScanningConfiguration:
+        ScanOnPush: True
+      ImageTagMutability: MUTABLE
+      RepositoryName: mlops-rec-news-feed-images
+      RepositoryPolicyText: !Ref RepoPolicy
+      #LifecyclePolicyText: !Ref RepoLifecycle
+
+  ecrNewsFeature:
+    Type: 'AWS::ECR::Repository'
+    Properties:
+      ImageScanningConfiguration:
+        ScanOnPush: True
+      ImageTagMutability: MUTABLE
+      RepositoryName: mlops-rec-news-feature-images
+      RepositoryPolicyText: !Ref RepoPolicy
+      #LifecyclePolicyText: !Ref RepoLifecycle
+
+  ecrNewsDistance:
+    Type: 'AWS::ECR::Repository'
+    Properties:
+      ImageScanningConfiguration:
+        ScanOnPush: True
+      ImageTagMutability: MUTABLE
+      RepositoryName: mlops-rec-news-distance-images
+      RepositoryPolicyText: !Ref RepoPolicy
+      #LifecyclePolicyText: !Ref RepoLifecycle
+
+  ecrNewsLookup:
+    Type: 'AWS::ECR::Repository'
+    Properties:
+      ImageScanningConfiguration:
+        ScanOnPush: True
+      ImageTagMutability: MUTABLE
+      RepositoryName: mlops-rec-news-lookup-images
+      RepositoryPolicyText: !Ref RepoPolicy
+      #LifecyclePolicyText: !Ref RepoLifecycle
+
+  ecrSb1Index:
+    Type: 'AWS::ECR::Repository'
+    Properties:
+      ImageScanningConfiguration:
+        ScanOnPush: True
+      ImageTagMutability: MUTABLE
+      RepositoryName: mlops-rec-sb1-index-images
+      RepositoryPolicyText: !Ref RepoPolicy
+      #LifecyclePolicyText: !Ref RepoLifecycle
+
+  ecrSb1IndexJob:
+    Type: 'AWS::ECR::Repository'
+    Properties:
+      ImageScanningConfiguration:
+        ScanOnPush: True
+      ImageTagMutability: MUTABLE
+      RepositoryName: mlops-rec-sb1-index-job-images
+      RepositoryPolicyText: !Ref RepoPolicy
+      #LifecyclePolicyText: !Ref RepoLifecycle
+
+  ecrSb1Model:
+    Type: 'AWS::ECR::Repository'
+    Properties:
+      ImageScanningConfiguration:
+        ScanOnPush: True
+      ImageTagMutability: MUTABLE
+      RepositoryName: mlops-rec-sb1-model-images
+      RepositoryPolicyText: !Ref RepoPolicy
+      #LifecyclePolicyText: !Ref RepoLifecycle
+
+Outputs:
+  apiBox: 
+    Value: !Ref ecrApiBox
+    Description: api box repo
+
+  g1Model: 
+    Value: !Ref ecrG1Model
+    Description: gensim model repo
+
+  newsFeedJob: 
+    Value: !Ref ecrNewsFeedJob
+    Description: news feed job repo
+
+  newsFeed: 
+    Value: !Ref ecrNewsFeed
+    Description: News Feed repo
+
+  newsFeature: 
+    Value: !Ref ecrNewsFeature
+    Description: News Feature repo
+
+  newsDistance: 
+    Value: !Ref ecrNewsDistance
+    Description: News Distance repo
+
+  newsLookup: 
+    Value: !Ref ecrNewsLookup
+    Description: News Lookup repo
+
+  sb1Index: 
+    Value: !Ref ecrSb1Index
+    Description: Sb1Index repo
+
+  sb1IndexJob: 
+    Value: !Ref ecrSb1IndexJob
+    Description: Sb1IndexJob repo
+
+  sb1Model: 
+    Value: !Ref ecrSb1Model
+    Description: Sb1Model repo
+

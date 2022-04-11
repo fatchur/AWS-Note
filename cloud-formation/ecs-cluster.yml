@@ -1,0 +1,172 @@
+# Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
+# SPDX-License-Identifier: MIT
+
+
+AWSTemplateFormatVersion: '2010-09-09'
+
+Description: Deploy MlOps Service Stack.
+
+Parameters:
+  EnvironmentName:
+    Type: String
+    Default: mlops-rec-ecs-prod
+    Description: "A friendly environment name that will be used for namespacing all cluster resources. Example: staging, qa, or production"
+  
+  NetworkStackName: 
+    Description: An environment name that for network name
+    Type: String
+    Default: mlops-rec-network-prod
+
+  PrivateDNSNamespaceName:
+    Type: String
+    Default: mlops-rec-ecs-prod
+    Description: "The private DNS name that identifies the name that you want to use to locate your resources"
+
+
+Resources:
+
+  ECSCluster:
+    Type: AWS::ECS::Cluster
+    Properties: 
+      CapacityProviders: 
+        - FARGATE
+      ClusterName: !Ref EnvironmentName
+      ClusterSettings: 
+        - Name: containerInsights
+          Value: enabled
+      Configuration:
+        ExecuteCommandConfiguration:
+          Logging: DEFAULT
+      DefaultCapacityProviderStrategy:
+        - CapacityProvider: FARGATE
+          Weight: 1
+
+      Tags:
+      - Key: environment
+        Value: production
+
+  AutoScalingRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: ecs-tasks.amazonaws.com
+            Action: 'sts:AssumeRole'
+      ManagedPolicyArns:
+        - 'arn:aws:iam::aws:policy/service-role/AmazonEC2ContainerServiceAutoscaleRole'
+
+  ECSRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Statement:
+        - Effect: Allow
+          Principal:
+            Service: [ecs.amazonaws.com]
+          Action: ['sts:AssumeRole']
+      Path: /
+      Policies:
+      - PolicyName: ecs-service
+        PolicyDocument:
+          Statement:
+          - Effect: Allow
+            Action:
+              - 'ec2:AttachNetworkInterface'
+              - 'ec2:CreateNetworkInterface'
+              - 'ec2:CreateNetworkInterfacePermission'
+              - 'ec2:DeleteNetworkInterface'
+              - 'ec2:DeleteNetworkInterfacePermission'
+              - 'ec2:Describe*'
+              - 'ec2:DetachNetworkInterface'
+
+              - 'elasticloadbalancing:DeregisterInstancesFromLoadBalancer'
+              - 'elasticloadbalancing:DeregisterTargets'
+              - 'elasticloadbalancing:Describe*'
+              - 'elasticloadbalancing:RegisterInstancesWithLoadBalancer'
+              - 'elasticloadbalancing:RegisterTargets'
+            Resource: '*'
+
+  ECSTaskExecutionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Statement:
+        - Effect: Allow
+          Principal:
+            Service: [ecs-tasks.amazonaws.com]
+          Action: ['sts:AssumeRole']
+      Path: /
+      Policies:
+        - PolicyName: AmazonECSTaskExecutionRolePolicy
+          PolicyDocument:
+            Statement:
+            - Effect: Allow
+              Action:
+                # Allow the ECS Tasks to download images from ECR
+                - 'ecr:GetAuthorizationToken'
+                - 'ecr:BatchCheckLayerAvailability'
+                - 'ecr:GetDownloadUrlForLayer'
+                - 'ecr:BatchGetImage'
+
+                # Allow the ECS tasks to upload logs to CloudWatch
+                - 'logs:CreateLogStream'
+                - 'logs:PutLogEvents'
+
+                # additional for accomodating apibox
+                # access dynamodb 
+                - 'dynamodb:GetItem'
+                - 'dynamodb:Query'
+                - 'dynamodb:Scan'
+                - 'dynamodb:BatchGetItem'
+                - 'dynamodb:List*'
+
+                # access parameter store 
+                - 'ssm:*'
+              Resource: '*'
+
+  PrivateDNSNamespace:
+    Type: 'AWS::ServiceDiscovery::PrivateDnsNamespace'
+    Properties:
+      Vpc: {'Fn::ImportValue': !Sub '${NetworkStackName}-VPC'}
+      Name: !Ref PrivateDNSNamespaceName
+
+  
+Outputs: 
+  OutputEcsCluster:
+    Description: A reference to the created ecs cluster
+    Value: !Ref ECSCluster
+    Export:
+      Name:
+          Fn::Sub: "${AWS::StackName}-ecs"
+
+  OutputAutoscalingRole:
+    Description: A reference to the autoscaling role
+    Value: !Ref AutoScalingRole
+    Export:
+      Name:
+          Fn::Sub: "${AWS::StackName}-autoScalingRole" 
+
+  OutputEcsRole:
+    Description: A reference to the Ecs role
+    Value: !Ref ECSRole
+    Export:
+      Name:
+          Fn::Sub: "${AWS::StackName}-EcsRole" 
+
+  OutputECSTaskExecutionRole:
+    Description: A reference to the Ecs role
+    Value: !Ref ECSTaskExecutionRole
+    Export:
+      Name:
+          Fn::Sub: "${AWS::StackName}-EcsTaskExecutionRole" 
+
+  OutputPrivateDNSNamespace:
+    Description: A reference to PrivateDNSNamespace
+    Value: !Ref PrivateDNSNamespace
+    Export:
+      Name:
+          Fn::Sub: "${AWS::StackName}-PrivateDNSNamespace" 
+
+

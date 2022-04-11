@@ -1,0 +1,288 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description:  mlops-rec - This template deploy dynamodb table 
+
+Parameters:
+  EnvironmentName:
+    Description: An environment name that is prefixed to resource names
+    Type: String
+    Default: mlops-rec-dynamo-prod
+
+  NetworkStackName: 
+    Description: An environment name that for network name
+    Type: String
+    Default: mlops-rec-network-prod
+
+  ####################################
+  NewsTableName:
+    Description: Name of the table
+    Type: String
+    Default: mlops-rec-news 
+
+  NewsTablePK: 
+    Type: String 
+    Default: newsId
+
+  NewsTablePKType: 
+    Type: String 
+    Default: S
+
+  ####################################
+  NewsFeatureTableName:
+    Description: Name of the table
+    Type: String
+    Default: mlops-rec-news-feature
+
+  NewsFeatureTablePK: 
+    Type: String 
+    Default: newsId
+
+  NewsFeatureTablePKType: 
+    Type: String 
+    Default: S
+
+  NewsFeatureTableSK: 
+    Type: String 
+    Default: modelId
+
+  NewsFeatureTableSKType: 
+    Type: String 
+    Default: S
+
+  ####################################
+  NewsDistanceTableName:
+    Description: Name of the table
+    Type: String
+    Default: mlops-rec-news-distance
+
+  NewsDistanceTablePK: 
+    Type: String 
+    Default: newsId
+
+  NewsDistanceTablePKType: 
+    Type: String 
+    Default: S
+
+  NewsDistanceTableSK: 
+    Type: String 
+    Default: modelId
+
+  NewsDistanceTableSKType: 
+    Type: String 
+    Default: S
+
+  ####################################
+  NewsRecommendationTableName:
+    Description: Name of the table
+    Type: String
+    Default: mlops-rec-news-recommendation
+
+  NewsRecommendationTablePK: 
+    Type: String 
+    Default: newsId
+
+  NewsRecommendationTablePKType: 
+    Type: String 
+    Default: S
+
+  NewsRecommendationTableSK: 
+    Type: String 
+    Default: modelId
+
+  NewsRecommendationTableSKType: 
+    Type: String 
+    Default: S
+
+  ####################################
+  NewsProgressTableName:
+    Description: Name of the table
+    Type: String
+    Default: mlops-rec-news-progress
+
+  NewsProgressTablePK: 
+    Type: String 
+    Default: newsId
+
+  NewsProgressTablePKType: 
+    Type: String 
+    Default: S
+
+  NewsProgressTableSK: 
+    Type: String 
+    Default: createdAt
+
+  NewsProgressTableSKType: 
+    Type: String 
+    Default: S 
+
+  ####################################
+  EditorialTableName:
+    Description: Name of the table
+    Type: String
+    Default: mlops-rec-news-editorial
+
+  EditorialTablePK: 
+    Type: String 
+    Default: newsId
+
+  EditorialTablePKType: 
+    Type: String 
+    Default: S
+
+
+Resources:
+  DynamoDBEndpoint:
+    Type: AWS::EC2::VPCEndpoint
+    Properties:
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Action: "*"
+            Principal: "*"
+            Resource: "*"
+
+      RouteTableIds: !Split [',', !Join [',', [{'Fn::ImportValue': !Sub '${NetworkStackName}-privateroutetable1'}, {'Fn::ImportValue': !Sub '${NetworkStackName}-privateroutetable2'}]]]
+      ServiceName: !Sub 'com.amazonaws.${AWS::Region}.dynamodb'
+      VpcId: {'Fn::ImportValue': !Sub '${NetworkStackName}-VPC'}
+
+  dynamoNewsTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: !Ref NewsTableName
+      AttributeDefinitions:
+        - 
+          AttributeName: !Ref NewsTablePK
+          AttributeType: !Ref NewsTablePKType
+      KeySchema:
+        - 
+          AttributeName: !Ref NewsTablePK
+          KeyType: HASH
+      
+      BillingMode: PAY_PER_REQUEST
+
+  dynamoNewsFeatureTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: !Ref NewsFeatureTableName
+      AttributeDefinitions:
+        - 
+          AttributeName: !Ref NewsFeatureTablePK
+          AttributeType: !Ref NewsFeatureTablePKType
+        - 
+          AttributeName: !Ref NewsFeatureTableSK
+          AttributeType: !Ref NewsFeatureTableSKType
+      KeySchema:
+        - 
+          AttributeName: !Ref NewsFeatureTablePK
+          KeyType: HASH
+        - 
+          AttributeName: !Ref NewsFeatureTableSK
+          KeyType: RANGE
+      
+      BillingMode: PAY_PER_REQUEST
+
+  dynamoNewsDistanceTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: !Ref NewsDistanceTableName
+      AttributeDefinitions:
+        - 
+          AttributeName: !Ref NewsDistanceTablePK
+          AttributeType: !Ref NewsFeatureTablePKType
+        - 
+          AttributeName: !Ref NewsDistanceTableSK
+          AttributeType: !Ref NewsDistanceTableSKType
+      KeySchema:
+        - 
+          AttributeName: !Ref NewsDistanceTablePK
+          KeyType: HASH
+        - 
+          AttributeName: !Ref NewsDistanceTableSK
+          KeyType: RANGE
+      
+      BillingMode: PAY_PER_REQUEST
+
+  dynamoNewsRecommendationTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: !Ref NewsRecommendationTableName
+      AttributeDefinitions:
+        - 
+          AttributeName: !Ref NewsRecommendationTablePK
+          AttributeType: !Ref NewsRecommendationTablePKType
+        - 
+          AttributeName: !Ref NewsRecommendationTableSK
+          AttributeType: !Ref NewsRecommendationTableSKType
+      KeySchema:
+        - 
+          AttributeName: !Ref NewsRecommendationTablePK
+          KeyType: HASH
+        - 
+          AttributeName: !Ref NewsRecommendationTableSK
+          KeyType: RANGE
+      
+      BillingMode: PAY_PER_REQUEST
+
+  dynamoNewsProgressTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: !Ref NewsProgressTableName
+      AttributeDefinitions:
+        - 
+          AttributeName: !Ref NewsProgressTablePK
+          AttributeType: !Ref NewsProgressTablePKType
+        - 
+          AttributeName: !Ref NewsProgressTableSK
+          AttributeType: !Ref NewsProgressTableSKType
+      KeySchema:
+        - 
+          AttributeName: !Ref NewsProgressTablePK
+          KeyType: HASH
+        - 
+          AttributeName: !Ref NewsProgressTableSK
+          KeyType: RANGE
+      
+      BillingMode: PAY_PER_REQUEST
+
+  dynamoEditorialTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: !Ref EditorialTableName
+      AttributeDefinitions:
+        - 
+          AttributeName: !Ref EditorialTablePK
+          AttributeType: !Ref EditorialTablePKType
+      
+      KeySchema:
+        - 
+          AttributeName: !Ref EditorialTablePK
+          KeyType: HASH
+      
+      BillingMode: PAY_PER_REQUEST
+
+Outputs: 
+  NewsTable: 
+    Value: !Ref dynamoNewsTable 
+    Description: news table
+
+  NewsFeatureTable: 
+    Value: !Ref dynamoNewsFeatureTable 
+    Description: news feature table
+
+  NewsDistanceTable: 
+    Value: !Ref dynamoNewsDistanceTable 
+    Description: news distance table
+
+  NewsRecommendationTable: 
+    Value: !Ref dynamoNewsRecommendationTable 
+    Description: news Recommendation table 
+
+  NewsProgressTable: 
+    Value: !Ref dynamoNewsProgressTable 
+    Description: news Progress table
+
+  EditorialTable: 
+    Value: !Ref dynamoEditorialTable 
+    Description: Editorial table
+
+

@@ -1,0 +1,119 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description:  mlops-rec - This template deploy sqs
+
+
+Parameters:
+  EnvironmentName:
+    Description: An environment name that is prefixed to resource names
+    Type: String
+    Default: mlops-rec-sqs-prod
+
+  NetworkStackName: 
+    Description: An environment name that for network name
+    Type: String
+    Default: mlops-rec-network-prod
+
+  QueueMessageDelay: 
+    Type: Number
+    Default: 0
+
+  QueueMessageSize: 
+    Type: Number
+    Default: 262144 #bytes
+  
+  # max live time for message in queue
+  QueueMessageRetentionPeriod: 
+    Type: Number      #in second 
+    Default: 86400 # 1 day
+
+  #max wait for consumer to wait
+  QueueReceiveMessageWaitTimeSeconds: 
+    Type: Number
+    Default: 20
+
+  QueueVisibilityTimeout:
+    Type: Number
+    Default: 60 
+
+  QueueFeatureName: 
+    Type: String
+    Default: mlops-recs-news-feature
+
+  QueueDistanceName: 
+    Type: String
+    Default: mlops-recs-news-distance
+
+  QueueLookupName: 
+    Type: String
+    Default: mlops-recs-news-lookup
+
+
+Resources: 
+  SqsEndpoint:
+    Type: AWS::EC2::VPCEndpoint
+    Properties:
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Action: "*"
+            Principal: "*"
+            Resource: "*"
+
+      ServiceName: !Sub 'com.amazonaws.${AWS::Region}.sqs'
+      VpcEndpointType: Interface
+      VpcId: {'Fn::ImportValue': !Sub '${NetworkStackName}-VPC'}
+
+  SqsNewsFeature: 
+    Type: AWS::SQS::Queue
+    Properties: 
+      DelaySeconds: !Ref QueueMessageDelay
+      MaximumMessageSize: !Ref QueueMessageSize
+      MessageRetentionPeriod: !Ref QueueMessageRetentionPeriod
+      QueueName: !Ref QueueFeatureName
+      ReceiveMessageWaitTimeSeconds: !Ref QueueReceiveMessageWaitTimeSeconds
+      Tags: 
+        - Key: Name
+          Value: !Sub ${QueueFeatureName}
+      VisibilityTimeout: !Ref QueueVisibilityTimeout
+
+  SqsNewsDistance: 
+    Type: AWS::SQS::Queue
+    Properties: 
+      DelaySeconds: !Ref QueueMessageDelay
+      MaximumMessageSize: !Ref QueueMessageSize
+      MessageRetentionPeriod: !Ref QueueMessageRetentionPeriod
+      QueueName: !Ref QueueDistanceName
+      ReceiveMessageWaitTimeSeconds: !Ref QueueReceiveMessageWaitTimeSeconds
+      Tags: 
+        - Key: Name
+          Value: !Sub ${QueueDistanceName}
+      VisibilityTimeout: !Ref QueueVisibilityTimeout
+
+  SqsNewsLookup: 
+    Type: AWS::SQS::Queue
+    Properties: 
+      DelaySeconds: !Ref QueueMessageDelay
+      MaximumMessageSize: !Ref QueueMessageSize
+      MessageRetentionPeriod: !Ref QueueMessageRetentionPeriod
+      QueueName: !Ref QueueLookupName
+      ReceiveMessageWaitTimeSeconds: !Ref QueueReceiveMessageWaitTimeSeconds
+      Tags: 
+        - Key: Name
+          Value: !Sub ${QueueLookupName}
+      VisibilityTimeout: !Ref QueueVisibilityTimeout
+
+
+Outputs:
+  NewsFeatureSqs: 
+    Value: !Ref  SqsNewsFeature
+    Description: news feature sqs
+
+  NewsDistanceSqs: 
+    Value: !Ref  SqsNewsDistance
+    Description: news distance sqs
+
+  NewsLookupSqs: 
+    Value: !Ref  SqsNewsLookup
+    Description: news lookup sqs
+
