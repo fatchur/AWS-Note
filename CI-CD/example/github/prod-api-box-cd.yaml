@@ -1,0 +1,82 @@
+name: Production - API Box CD
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+    - 'api-box-gin/**'
+  workflow_dispatch:
+
+env:
+  TASK_DEFINITION: mlops-rec-prod-ApiBox
+  SERVICE: mlops-rec-prod-ServiceApiBox-Eubrm6aXJXTV
+  CLUSTER: mlops-rec-prod-cluster
+  CONTAINER_NAME: apibox
+  IMAGE: 808669242981.dkr.ecr.ap-southeast-1.amazonaws.com/mlops-rec-api-box-images
+  INDEX_SB1_ENDPOINT: https://sojoa0v23a.execute-api.us-east-1.amazonaws.com/index/sb1/predict
+  AWS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID_PROD }}
+  AWS_SECRET_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY_PROD }}
+  AWS_REGION: us-east-1 # TODO: Change to prod, this only used temporarily
+  DYNAMODB_RECOMMENDATION_TABLE_NAME: mlops-rec-news-recommendation
+
+jobs:
+  continuous-deployment:
+    runs-on: ubuntu-latest
+    permissions:
+      packages: write
+      contents: read
+      id-token: write
+    
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v2
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v1
+        with:
+          aws-access-key-id: ${{ env.AWS_KEY_ID }}
+          aws-secret-access-key: ${{ env.AWS_SECRET_KEY }}
+          aws-region: ap-southeast-1 # Prodcution region
+
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v1
+      
+      - name: Download task definition
+        run: |
+          aws ecs describe-task-definition --task-definition ${{ env.TASK_DEFINITION }} --query taskDefinition > task-definition.json
+      
+      - name: Build, tag, and push image to Amazon ECR
+        id: build-image
+        run: |
+          docker build --tag "$IMAGE:$GITHUB_SHA" .
+          docker push "$IMAGE:$GITHUB_SHA"
+          echo "::set-output name=image::$IMAGE:$GITHUB_SHA"
+        working-directory: api-box-gin
+
+      - name: Render ECS task definition
+        id: task-def
+        uses: aws-actions/amazon-ecs-render-task-definition@v1
+        with:
+          task-definition: task-definition.json
+          container-name: ${{ env.CONTAINER_NAME }}
+          image: ${{ steps.build-image.outputs.image }}
+          # TODO: Change REGION to prod, this only used temporarily
+          environment-variables: |
+            AWS_REGION_ID=us-east-1 
+            AWS_KEY_ID=${{ env.AWS_KEY_ID }}
+            AWS_SECRET_KEY=${{ env.AWS_SECRET_KEY }}
+            INDEX_SB1_ENDPOINT=${{ env.INDEX_SB1_ENDPOINT }}
+            DYNAMODB_RECOMMENDATION_TABLE_NAME=${{ env.DYNAMODB_RECOMMENDATION_TABLE_NAME }}
+            REDIS_HOST=127.0.0.1:6379
+            REDIS_MAX_IDLE=30
+            REDIS_MAX_ACTIVE=30
+            REDIS_IDLE_TIMEOUT=200
+
+      - name: Deploy Amazon ECS task definition
+        uses: aws-actions/amazon-ecs-deploy-task-definition@v1
+        with:
+          task-definition: ${{ steps.task-def.outputs.task-definition }}
+          service: ${{ env.SERVICE }}
+          cluster: ${{ env.CLUSTER }}
+          wait-for-service-stability: true

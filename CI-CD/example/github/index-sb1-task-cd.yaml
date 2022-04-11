@@ -1,0 +1,50 @@
+# Restart Index SB1 Task on ECS to download new Annoy Index
+name: Index SB1 Task CD
+
+on:
+  schedule:
+    - cron: '0 20 * * *'
+  workflow_dispatch:
+
+env:
+  CLUSTER: mlops-demo-ECSCluster-uuK111WXTW9n
+  TASK_DEFINITION: mlops-demo-TaskDefinitionIndexSB1-yQMBArKlaGZN
+
+jobs:
+  continuous-deployment:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Install AWS CLI
+        uses: unfor19/install-aws-cli-action@v1
+        with:
+          version: 1
+        env:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID_DEV }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY_DEV }}
+          aws-region: ${{ secrets.AWS_DEFAULT_REGION_DEV }}
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v1
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID_DEV }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY_DEV }}
+          aws-region: ${{ secrets.AWS_DEFAULT_REGION_DEV }}
+      
+      - name: Check out code
+        uses: actions/checkout@v2
+
+      - name: Get TASK ID
+        id: get_task_id
+        run: |
+          echo ::set-output name=TASK_ID::`aws ecs list-tasks \
+            --cluster "$CLUSTER" \
+            --desired-status RUNNING \
+            --family "$TASK_DEFINITION" \
+              | egrep "task/" | sed -E "s/.*task\/(.*)\"/\1/"`
+
+      - name: Stop TASK ID
+        run: |
+          aws ecs stop-task \
+            --cluster "$CLUSTER" \
+            --task "${{ steps.get_task_id.outputs.TASK_ID }}"

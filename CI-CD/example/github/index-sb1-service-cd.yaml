@@ -1,0 +1,77 @@
+# Deploy New Image of index-sb1-service API to ECR and update task definition
+name: Index SB1 Service CD
+
+on:
+  push:
+    branches: [ dev ]
+    paths:
+    - 'index-sb1-service/**'
+  workflow_dispatch:
+
+env:
+  TASK_DEFINITION: mlops-demo-TaskDefinitionIndexSB1-yQMBArKlaGZN
+  SERVICE: mlops-demo-ServiceIndexSB1-V1BSLAkEGkoW
+  CLUSTER: mlops-demo-ECSCluster-uuK111WXTW9n
+  CONTAINER_NAME: indexsb1
+  IMAGE: 808669242981.dkr.ecr.us-east-1.amazonaws.com/mlops-rec-sb1-index-images
+  AWS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID_DEV }}
+  AWS_SECRET_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY_DEV }}
+  AWS_REGION: ${{ secrets.AWS_DEFAULT_REGION_DEV }}
+  S3_BUCKET_NAME: ${{ secrets.S3_BUCKET_NAME_DEV }}
+
+jobs:
+  continuous-deployment:
+    runs-on: ubuntu-latest
+    # if: github.ref == 'refs/heads/dev'
+    permissions:
+      packages: write
+      contents: read
+      id-token: write
+    
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v2
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v1
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID_DEV }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY_DEV }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v1
+      
+      - name: Download task definition
+        run: |
+          aws ecs describe-task-definition --task-definition ${{ env.TASK_DEFINITION }} --query taskDefinition > task-definition.json
+
+      - name: Build, tag, and push image to Amazon ECR
+        id: build-image
+        run: |
+          docker build --tag "$IMAGE:$GITHUB_SHA" .
+          docker push "$IMAGE:$GITHUB_SHA"
+          echo "::set-output name=image::$IMAGE:$GITHUB_SHA"
+        working-directory: index-sb1-service
+
+      - name: Fill in the new image ID in the Amazon ECS task definition
+        id: task-def
+        uses: aws-actions/amazon-ecs-render-task-definition@v1
+        with:
+          task-definition: task-definition.json
+          container-name: ${{ env.CONTAINER_NAME }}
+          image: ${{ steps.build-image.outputs.image }}
+          environment-variables: |
+            AWS_KEY_ID=${{ env.AWS_KEY_ID }}
+            AWS_SECRET_KEY=${{ env.AWS_SECRET_KEY }}
+            AWS_REGION_ID=${{ env.AWS_REGION }}
+            S3_BUCKET_NAME=${{ env.S3_BUCKET_NAME }}
+
+      - name: Deploy Amazon ECS task definition
+        uses: aws-actions/amazon-ecs-deploy-task-definition@v1
+        with:
+          task-definition: ${{ steps.task-def.outputs.task-definition }}
+          service: ${{ env.SERVICE }}
+          cluster: ${{ env.CLUSTER }}
+          wait-for-service-stability: true

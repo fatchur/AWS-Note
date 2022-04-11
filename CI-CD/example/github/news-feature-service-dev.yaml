@@ -1,0 +1,86 @@
+name: News Feature Service CD
+
+on:
+  push:
+    branches: [ dev ]
+    paths:
+      - 'mlops-rec-workers/news-feature-service/**'
+      - '.github/workflows/news-feature-service-dev.yaml'
+  workflow_dispatch:
+
+env:
+  CLUSTER: mlops-rec-v2 
+  #TASK_DEFINITION_NAME: mlops-rec-news-feature
+  #SERVICE: mlops-rec-news-feature
+  TASK_DEFINITION_NAME: mlops-rec-workers
+  SERVICE: mlops-rec-workers
+  CONTAINER_NAME: mlops-rec-news-feature-images
+  IMAGE: 808669242981.dkr.ecr.us-east-1.amazonaws.com/mlops-rec-news-feature-images
+  AWS_REGION: ${{ secrets.AWS_DEFAULT_REGION_DEV }}
+  WORKDIR: mlops-rec-workers/news-feature-service
+
+
+jobs:
+  continuous-deployment:
+    runs-on: ubuntu-latest
+    permissions:
+      packages: write
+      contents: read
+      id-token: write
+    
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v2
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v1
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID_DEV }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY_DEV }}
+          aws-region: ${{ secrets.AWS_DEFAULT_REGION_DEV }}
+
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v1
+
+      - name: Download task definition
+        run: |
+          aws ecs describe-task-definition \
+          --task-definition ${{ env.TASK_DEFINITION_NAME }} \
+          --query taskDefinition > ${{ env.WORKDIR }}/task-definition.json
+
+      - name: Build, tag, and push image to Amazon ECR
+        id: build-image
+        run: |
+          docker build --tag "$IMAGE:$GITHUB_SHA" .
+          docker push "$IMAGE:$GITHUB_SHA"
+          echo "::set-output name=image::$IMAGE:$GITHUB_SHA"
+        working-directory: ${{ env.WORKDIR }}
+          
+      - name: Fill in the new image ID in the Amazon ECS task definition
+        id: task-def
+        uses: aws-actions/amazon-ecs-render-task-definition@v1
+        with:
+          task-definition: ${{ env.WORKDIR }}/task-definition.json
+          container-name: ${{ env.CONTAINER_NAME }}
+          image: ${{ steps.build-image.outputs.image }}
+          environment-variables: |
+            ssm_bucket_path=${{ secrets.SSM_BUCKET_PATH }}
+            ssm_model_id_path=${{ secrets.SSM_MODEL_ID_PATH }}
+            ssm_news_feature_queue_path=${{ secrets.SSM_NEWS_FEATURE_QUEUE_PATH }}
+            ssm_news_distance_queue_path=${{ secrets.SSM_NEWS_DISTANCE_QUEUE_PATH }}
+            ssm_feature_url_path=${{ secrets.SSM_FEATURE_URL_PATH }}
+            ssm_news_table_path=${{ secrets.SSM_NEWS_TABLE_PATH}}
+            ssm_news_feature_path=${{ secrets.SSM_NEWS_FEATURE_PATH }}
+            ssm_news_progress_path=${{ secrets.SSM_NEWS_PROGRESS_PATH }}
+            stage=${{ secrets.AWS_DEFAULT_REGION_DEV }}
+            aws_region=${{ secrets.AWS_DEFAULT_REGION_DEV }}
+            
+
+      - name: Deploy Amazon ECS task definition
+        uses: aws-actions/amazon-ecs-deploy-task-definition@v1
+        with:
+          task-definition: ${{ steps.task-def.outputs.task-definition }}
+          service: ${{ env.SERVICE }}
+          cluster: ${{ env.CLUSTER }}
+          wait-for-service-stability: true

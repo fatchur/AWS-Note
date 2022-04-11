@@ -1,0 +1,38 @@
+# Cron Job to Build Annoy Index
+name: Index SB1 - Build Annoy Index CD
+
+on:
+  schedule:
+    - cron: '0 18 * * *'
+  workflow_dispatch:
+
+env:
+  TASK_DEFINITION: mlops-job-TaskDefinitionIndexSB1Job-35w6x1Gzw3lf:15
+  CLUSTER: mlops-demo-ECSCluster-uuK111WXTW9n
+  CONTAINER_NAME: indexing-sb1-job
+  IMAGE: 808669242981.dkr.ecr.us-east-1.amazonaws.com/mlops-rec-sb1-index-images
+  AWS_REGION: us-east-1
+
+jobs:
+  continuous-deployment:
+    runs-on: ubuntu-latest
+    #if: github.ref == 'refs/heads/dev'
+    permissions:
+      packages: write
+      contents: read
+      id-token: write
+    
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v2
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v1
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID_DEV }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY_DEV }}
+          aws-region: ${{ env.AWS_REGION }}
+      
+      - name: Run task
+        run: |
+          aws ecs run-task --cluster ${{ env.CLUSTER }} --task-definition ${{ env.TASK_DEFINITION }} --count 1 --launch-type FARGATE --network-configuration "awsvpcConfiguration={subnets=[subnet-872f0ee1],securityGroups=[sg-773f1369]}"  
