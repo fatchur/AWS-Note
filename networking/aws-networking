@@ -1,0 +1,58 @@
+
+
+
+VPC
+private network to deploy resources in AWS
+
+Subnet
+allow you to partition the network inside VPC,
+works on certain availability zone 
+
+public subnet
+subnet accessible from internet 
+
+private subnet 
+subnet that is not accessible from internte
+
+route table
+to define access to the internet and subnets 
+
+internet gateway 
+help our vpc instance connect to internet,
+public subnets have direct route to internet gateway
+
+NAT gateway
+allow your instances in privvate subnet to access internet while remaining private
+
+NACL 
+- A firewall which control trafficts to subnet 
+- have ALLOW and DENY rules
+- attached at subnet level 
+- rule ONLY ip address
+
+
+Security Group 
+- A firewall that controls traffict to and from an instance 
+- ONLY have allow rule
+- rule include IP address and SG 
+
+VPC FLow
+- capture all IP traffict going to our system 
+- helps to monitor &troubleshoot issues. 
+	ex: subnet can't connect to internet 
+	    subnet cant connect to subnet 
+	    internet can't receive subnet 
+- capture all network info go and from to aws managed service (RDS, etc)
+
+
+vpc peering 
+- connect two vpc privately using aws network
+- make the behave as if they were in the same network
+- Both CIDR must not be overlapping 
+
+vpc endpoint 
+- allow you to connect to aws services using PRIVATE network instead of public network
+- 
+
+
+
