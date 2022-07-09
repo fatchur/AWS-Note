@@ -1,0 +1,146 @@
+variables:
+  DOCKER_HOST: tcp://docker:2375
+  DOCKER_TLS_CERTDIR: ""
+  #ACCOUNT_ID: 069
+  ACCOUNT_ID: 633
+  #DEVELOPMENT_REGION: us-west-2
+  DEVELOPMENT_REGION: ap-so
+  PRODUCTION_REGION: ap-southeast-1 
+  CLUSTER_NAME_DEV: ai-dev-cl
+  CLUSTER_NAME_PROD: ai-prod-c
+
+  FRONTLINER_TASK_DEFINITION_NAME: ai-dev-fr
+  FRONTLINER_IMAGE_NAME: ai-dev-fro
+  FRONTLINER_SERVICE_NAME_DEV: ai-service-f
+
+  CROWD_TASK_DEFINITION_NAME: ai-dev-cr
+  CROWD_IMAGE_NAME: ai-dev-cr
+  CROWD_SERVICE_NAME_DEV: ai-service-cr
+
+
+stages:
+  - build_dev
+  - deploy_dev
+  - build_prod
+  - deploy_prod
+
+
+image: 
+  name: amazon/aws-cli
+  entrypoint: [""]
+
+
+services:
+  - name: docker:20-dind
+    command: ["--tls=false"]
+
+
+frontliner_build_dev:
+  stage: build_dev
+  before_script:
+    - amazon-linux-extras install docker
+    - aws --version
+    - docker --version
+    - yum install -y make
+    - aws configure set aws_access_key_id $AWS_ACCESS_KEY_ID
+    - aws configure set aws_secret_access_key $AWS_SECRET_ACCESS_KEY
+    - aws configure set region $DEVELOPMENT_REGION
+
+  script:
+    - cd deployment/frontliner
+    - make docker-deploy-dev
+
+  after_script: []
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "master"'
+      changes:
+        - .gitlab-ci.yml
+        - deployment/frontliner/**/*
+
+
+frontliner_deploy_dev: 
+  stage: deploy_dev 
+  
+  before_script:
+    - yum install -y jq
+    - aws configure set aws_access_key_id $AWS_ACCESS_KEY_ID
+    - aws configure set aws_secret_access_key $AWS_SECRET_ACCESS_KEY
+    - aws configure set region $DEVELOPMENT_REGION
+
+  script:
+    - IMAGE_TAG=$(date +'%d%m%Y')
+    - echo $IMAGE_TAG
+    - REPOSITORY_URL=${ACCOUNT_ID}.dkr.ecr.${DEVELOPMENT_REGION}.amazonaws.com/${FRONTLINER_IMAGE_NAME}
+    - echo $REPOSITORY_URL
+    - TASK_DEFINITION=$(aws ecs describe-task-definition --task-definition "$FRONTLINER_TASK_DEFINITION_NAME" --region "${DEVELOPMENT_REGION}")
+    - CONTAINER_DEFINITION=$(echo $TASK_DEFINITION | jq --arg IMAGE "$REPOSITORY_URL:$IMAGE_TAG" '.taskDefinition | .containerDefinitions[0].image = $IMAGE | del(.taskDefinitionArn) | del(.revision) | del(.status) | del(.registeredAt) | del(.registeredAt) | del(.registeredBy) | del(.requiresAttributes) | del(.compatibilities)')
+    - NEW_TASK_INFO=$(aws ecs register-task-definition --region $DEVELOPMENT_REGION --cli-input-json "$CONTAINER_DEFINITION")
+    - NEW_REVISION=$(echo $NEW_TASK_INFO | jq '.taskDefinition.revision')
+
+    - aws ecs update-service --cluster ${CLUSTER_NAME_DEV} --service ${FRONTLINER_SERVICE_NAME_DEV} --task-definition ${FRONTLINER_TASK_DEFINITION_NAME}:${NEW_REVISION} --desired-count 1 --force-new-deployment
+
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "master"'
+      changes:
+        - .gitlab-ci.yml
+        - deployment/frontliner/**/*
+
+  needs: [frontliner_build_dev]
+
+
+
+#############################
+# CI/CD FOR CROWD LOGIC
+#############################
+crowd_build_dev:
+  stage: build_dev
+  before_script:
+    - amazon-linux-extras install docker
+    - aws --version
+    - docker --version
+    - yum install -y make
+    - aws configure set aws_access_key_id $AWS_ACCESS_KEY_ID
+    - aws configure set aws_secret_access_key $AWS_SECRET_ACCESS_KEY
+    - aws configure set region $DEVELOPMENT_REGION
+
+  script:
+    - cd deployment/logic
+    - make docker-deploy-dev
+
+  after_script: []
+
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "master"'
+      changes:
+        - .gitlab-ci.yml
+        - deployment/logic/**/*
+
+
+crowd_deploy_dev: 
+  stage: deploy_dev 
+  
+  before_script:
+    - yum install -y jq
+    - aws configure set aws_access_key_id $AWS_ACCESS_KEY_ID
+    - aws configure set aws_secret_access_key $AWS_SECRET_ACCESS_KEY
+    - aws configure set region $DEVELOPMENT_REGION
+
+  script:
+    - IMAGE_TAG=$(date +'%d%m%Y')
+    - echo $IMAGE_TAG
+    - REPOSITORY_URL=${ACCOUNT_ID}.dkr.ecr.${DEVELOPMENT_REGION}.amazonaws.com/${CROWD_IMAGE_NAME}
+    - echo $REPOSITORY_URL
+    - TASK_DEFINITION=$(aws ecs describe-task-definition --task-definition "$CROWD_TASK_DEFINITION_NAME" --region "${DEVELOPMENT_REGION}")
+    - CONTAINER_DEFINITION=$(echo $TASK_DEFINITION | jq --arg IMAGE "$REPOSITORY_URL:$IMAGE_TAG" '.taskDefinition | .containerDefinitions[0].image = $IMAGE | del(.taskDefinitionArn) | del(.revision) | del(.status) | del(.registeredAt) | del(.registeredAt) | del(.registeredBy) | del(.requiresAttributes) | del(.compatibilities)')
+    - NEW_TASK_INFO=$(aws ecs register-task-definition --region $DEVELOPMENT_REGION --cli-input-json "$CONTAINER_DEFINITION")
+    - NEW_REVISION=$(echo $NEW_TASK_INFO | jq '.taskDefinition.revision')
+
+    - aws ecs update-service --cluster ${CLUSTER_NAME_DEV} --service ${CROWD_SERVICE_NAME_DEV} --task-definition ${CROWD_TASK_DEFINITION_NAME}:${NEW_REVISION} --desired-count 1 --force-new-deployment
+
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "master"'
+      changes:
+        - .gitlab-ci.yml
+        - deployment/logic/**/*
+
+  needs: [crowd_build_dev]
