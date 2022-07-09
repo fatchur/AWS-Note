@@ -1,0 +1,21 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: Stack code for ECR
+
+Parameters:
+  EnvironmentName:
+      Description: An environment name that is prefixed to resource names
+      Type: String
+      Default: mlops-rec-ecr-replication-prod
+
+Resources:
+  replicateSb1Model: 
+    Type: AWS::ECR::ReplicationConfiguration
+    Properties:
+      ReplicationConfiguration: 
+          Rules:
+            - 
+              Destinations:
+                - 
+                  Region: "ap-southeast-1"
+                  RegistryId: "808669242981"
+             
